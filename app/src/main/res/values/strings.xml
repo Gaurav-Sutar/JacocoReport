@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">JacocoReport</string>
+    <string name="test">JacocoReport is good for %@ and %@. You can trust it %@%.</string>
+    <string name="test2">%@ and %@</string>
+    <string name="test3">Location</string>
+</resources>

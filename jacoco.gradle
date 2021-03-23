@@ -1,0 +1,93 @@
+apply plugin: 'jacoco'
+
+jacoco {
+    toolVersion "$jacoco_version"
+}
+
+tasks.withType(Test) {
+    jacoco.includeNoLocationClasses = true
+    jacoco.excludes = ['jdk.internal.*'] // see related issue https://github.com/gradle/gradle/issues/5184#issuecomment-457865951
+}
+
+task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest', 'createDebugCoverageReport']) {
+    group = "Reporting"
+    description = "Generate Jacoco coverage reports for the ${project.name}."
+    reports {
+        xml.enabled = true
+        html.enabled = true
+        //html.destination file("${rootProject.buildDir}/coverage-report")
+    }
+    def fileFilter = [
+            // android
+            '**/R.class',
+            '**/R$*.class',
+            '**/BuildConfig.*',
+            '**/Manifest*.*',
+            '**/*Test*.*',
+            'android/**/*.*',
+            // data binding
+            'android/databinding/**/*.class',
+            '**/android/databinding/*Binding.class',
+            '**/android/databinding/*',
+            '**/androidx/databinding/*',
+            '**/*Binding.class',
+            '**/BR.*',
+            // kotlin
+            '**/*MapperImpl*.*',
+            '**/*$ViewInjector*.*',
+            '**/*$ViewBinder*.*',
+            // retro lambda
+            '**/Lambda$*.class',
+            '**/Lambda.class',
+            '**/*Lambda.class',
+            '**/*Lambda*.class',
+            '**/*Lambda*.*',
+            '**/*Companion*.*',
+            // dagger
+            '**/*_MembersInjector.class',
+            '**/Dagger*Component.class',
+            '**/Dagger*Component$Builder.class',
+            '**/*Module_*Factory.class',
+            '**/di/module/*',
+            '**/*_Factory*.*',
+            '**/*Module*.*',
+            '**/*Dagger*.*',
+            '**/*Hilt*.*',
+            '**/*_MembersInjector.class',
+            '**/*_MembersInjector*.*',
+            '**/*_*Factory*.*',
+            '**/*_Provide*Factory*.*',
+            '**/*Component*.*',
+            '**/*Extensions*.*',
+            // `sealed` and `data` classes
+            '**/*$Result.*',
+            '**/*$Result$*.*',
+            // other
+            '**/*Parcel.class',
+            '**/*$CREATOR.class',
+            '**/AutoValue_*.*',
+            '**/*JavascriptBridge.class',
+    ]
+
+    def javaSrc = []
+    def kotlinSrc = []
+    def javaClasses = []
+    def kotlinClasses = []
+    def execution = []
+
+    rootProject.subprojects.each { project ->
+        javaClasses << fileTree(dir: "$project.buildDir/intermediates/javac/debug", excludes: fileFilter)
+        kotlinClasses << fileTree(dir: "$project.buildDir/tmp/kotlin-classes/debug", excludes: fileFilter)
+        javaSrc << "$project.projectDir/src/main/java"
+        kotlinSrc << "$project.projectDir/src/main/kotlin"
+        execution << fileTree(dir: project.buildDir, includes: ['**/*.exec', '**/*.ec'])
+    }
+
+    sourceDirectories.from = files([javaSrc, kotlinSrc])
+    classDirectories.from = files([javaClasses, kotlinClasses])
+    executionData.from = files(execution)
+
+    doLast() {
+        println "Jacoco Coverage Report: file://${reports.html.destination}/index.html"
+    }
+}
